@@ -11,7 +11,12 @@ def create_event(db: Session, event: Event) -> Event:
     return event
 
 
-def list_events(db: Session) -> list[Event]:
+def list_events_published(db: Session) -> list[Event]:
+    stmt = select(Event).where(Event.status == "published").order_by(Event.date.asc())
+    return list(db.execute(stmt).scalars().all())
+
+
+def list_events_all(db: Session) -> list[Event]:
     stmt = select(Event).order_by(Event.date.asc())
     return list(db.execute(stmt).scalars().all())
 
@@ -19,3 +24,11 @@ def list_events(db: Session) -> list[Event]:
 def get_event(db: Session, event_id: int) -> Event | None:
     stmt = select(Event).where(Event.id == event_id)
     return db.execute(stmt).scalars().first()
+
+
+def update_event_status(db: Session, event: Event, status: str) -> Event:
+    event.status = status
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event

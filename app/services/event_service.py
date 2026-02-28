@@ -1,8 +1,8 @@
-from app.models.event import Event
-from app.models.seat import Seat
 from sqlalchemy.orm import Session
 
-from app.repositories.event_repository import create_event, list_events
+from app.models.event import Event
+from app.models.seat import Seat
+from app.repositories.event_repository import create_event, list_events_published
 from app.repositories.seat_repository import bulk_create_seats
 
 
@@ -20,10 +20,11 @@ def create_event_with_seats(
         date=date,
         total_seats=total_seats,
         organizer_id=organizer_id,
+        status="draft",
     )
+
     event = create_event(db, event)
 
-    # generate seats S1..Sn
     seats = [Seat(event_id=event.id, seat_number=f"S{i}", status="available") for i in range(1, total_seats + 1)]
     bulk_create_seats(db, seats)
 
@@ -31,4 +32,4 @@ def create_event_with_seats(
 
 
 def get_all_events(db: Session):
-    return list_events(db)
+    return list_events_published(db)

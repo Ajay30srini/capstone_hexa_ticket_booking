@@ -8,12 +8,8 @@ from app.repositories.event_repository import get_event
 from app.repositories.seat_repository import get_seats_for_update
 
 
-def create_booking_confirmed(
-    db: Session,
-    user_id: int,
-    event_id: int,
-    seat_numbers: list[str],
-) -> Booking:
+def create_booking_confirmed(db: Session, user_id: int, requester_role: str, event_id: int, seat_numbers: list[str]) -> Booking:
+
     event = get_event(db, event_id)
     if not event:
         raise ValueError("Event not found")
@@ -63,6 +59,11 @@ def cancel_booking(
 
     if booking.status == "cancelled":
         raise ValueError("Booking already cancelled")
+    if event.status != "published":
+        raise ValueError("Bookings allowed only for published events")
+
+    if requester_role == "organizer" and event.organizer_id == requester_id:
+        raise ValueError("Organizer cannot cancel their own booking")
 
     seat_numbers = [s.strip().upper() for s in booking.seat_numbers_csv.split(",") if s.strip()]
     if not seat_numbers:

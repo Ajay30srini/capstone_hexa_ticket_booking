@@ -17,10 +17,12 @@ def create_booking(
 ):
     try:
         booking = create_booking_confirmed(
-            db=db,
-            user_id=user.id,
-            event_id=payload.event_id,
-            seat_numbers=payload.seat_numbers,
+        db=db,
+        user_id=user.id,
+        requester_role=user.role,
+        event_id=payload.event_id,
+        seat_numbers=payload.seat_numbers,
+
         )
         return BookingOut(
             id=booking.id,

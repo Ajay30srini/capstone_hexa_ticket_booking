@@ -8,6 +8,7 @@ from app.core.database import Base
 
 class Event(Base):
     __tablename__ = "events"
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 

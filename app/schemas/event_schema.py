@@ -9,6 +9,10 @@ class EventCreate(BaseModel):
     total_seats: int = Field(ge=1, le=5000)
 
 
+class EventStatusUpdate(BaseModel):
+    status: str = Field(pattern="^(draft|published|cancelled)$")
+
+
 class EventOut(BaseModel):
     id: int
     title: str
@@ -16,6 +20,7 @@ class EventOut(BaseModel):
     date: datetime
     total_seats: int
     organizer_id: int
+    status: str
 
     class Config:
         from_attributes = True
