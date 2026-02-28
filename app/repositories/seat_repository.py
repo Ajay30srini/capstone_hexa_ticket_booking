@@ -13,6 +13,12 @@ def list_seats_for_event(db: Session, event_id: int) -> list[Seat]:
     stmt = select(Seat).where(Seat.event_id == event_id).order_by(Seat.seat_number.asc())
     return list(db.execute(stmt).scalars().all())
 
+def set_seats_status(db: Session, event_id: int, seat_numbers: list[str], new_status: str) -> None:
+    seats = get_seats_for_update(db, event_id, seat_numbers)
+    for s in seats:
+        s.status = new_status
+    db.commit()
+
 
 def get_seats_for_update(db: Session, event_id: int, seat_numbers: list[str]) -> list[Seat]:
     """

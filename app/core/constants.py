@@ -1,0 +1,9 @@
+HOLD_MINUTES = 10
+SEAT_STATUS_AVAILABLE = "available"
+SEAT_STATUS_HELD = "held"
+SEAT_STATUS_BOOKED = "booked"
+
+BOOKING_PENDING = "pending"
+BOOKING_CONFIRMED = "confirmed"
+BOOKING_CANCELLED = "cancelled"
+BOOKING_EXPIRED = "expired"

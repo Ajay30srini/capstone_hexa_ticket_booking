@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, require_roles
 from app.schemas.booking_schema import BookingCreate, BookingOut, BookingCancelOut
-from app.services.booking_service import create_booking_confirmed, cancel_booking
+from app.services.booking_service import create_booking_hold, cancel_booking, expire_booking_admin
 from app.repositories.booking_repository import list_bookings_for_user
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
@@ -15,14 +15,17 @@ def create_booking(
     db: Session = Depends(get_db),
     user=Depends(require_roles("customer", "admin", "organizer")),
 ):
+    """
+    Sprint 4: This creates a HOLD (pending booking) and marks seats as HELD.
+    Confirm it using POST /payments/confirm
+    """
     try:
-        booking = create_booking_confirmed(
-        db=db,
-        user_id=user.id,
-        requester_role=user.role,
-        event_id=payload.event_id,
-        seat_numbers=payload.seat_numbers,
-
+        booking = create_booking_hold(
+            db=db,
+            user_id=user.id,
+            requester_role=user.role,
+            event_id=payload.event_id,
+            seat_numbers=payload.seat_numbers,
         )
         return BookingOut(
             id=booking.id,
@@ -42,38 +45,55 @@ def my_bookings(
     user=Depends(require_roles("customer", "admin", "organizer")),
 ):
     bookings = list_bookings_for_user(db, user.id)
-    return [
-        BookingOut(
-            id=b.id,
-            user_id=b.user_id,
-            event_id=b.event_id,
-            status=b.status,
-            created_at=b.created_at,
-            seat_numbers=b.seat_numbers_csv.split(","),
+    out: list[BookingOut] = []
+    for b in bookings:
+        out.append(
+            BookingOut(
+                id=b.id,
+                user_id=b.user_id,
+                event_id=b.event_id,
+                status=b.status,
+                created_at=b.created_at,
+                seat_numbers=b.seat_numbers_csv.split(",") if b.seat_numbers_csv else [],
+            )
         )
-        for b in bookings
-    ]
+    return out
 
 
 @router.patch("/{booking_id}/cancel", response_model=BookingCancelOut)
-def cancel_my_booking(
+def cancel(
     booking_id: int,
     db: Session = Depends(get_db),
     user=Depends(require_roles("customer", "admin", "organizer")),
 ):
     try:
-        booking = cancel_booking(
-            db=db,
-            booking_id=booking_id,
-            requester_id=user.id,
-            requester_role=user.role,
-        )
+        b = cancel_booking(db, booking_id, requester_id=user.id, requester_role=user.role)
         return BookingCancelOut(
-            id=booking.id,
-            status=booking.status,
-            event_id=booking.event_id,
-            user_id=booking.user_id,
-            seat_numbers=booking.seat_numbers_csv.split(","),
+            id=b.id,
+            status=b.status,
+            event_id=b.event_id,
+            user_id=b.user_id,
+            seat_numbers=b.seat_numbers_csv.split(",") if b.seat_numbers_csv else [],
+            cancelled_at=None,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{booking_id}/expire", response_model=BookingCancelOut)
+def expire(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(require_roles("admin")),
+):
+    try:
+        b = expire_booking_admin(db, booking_id)
+        return BookingCancelOut(
+            id=b.id,
+            status=b.status,
+            event_id=b.event_id,
+            user_id=b.user_id,
+            seat_numbers=b.seat_numbers_csv.split(",") if b.seat_numbers_csv else [],
             cancelled_at=None,
         )
     except ValueError as e:

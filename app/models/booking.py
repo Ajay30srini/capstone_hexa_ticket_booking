@@ -16,7 +16,7 @@ class Booking(Base):
 
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="confirmed")  # confirmed/cancelled
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
+    hold_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # store seat list as comma-separated for sprint 2 simplicity
     seat_numbers_csv: Mapped[str] = mapped_column(String(500), nullable=False)
 
