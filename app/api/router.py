@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from app.api.routes.seats import router as seats_router
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.events import router as events_router
@@ -13,3 +14,4 @@ def health():
 api_router.include_router(auth_router)
 api_router.include_router(events_router)
 api_router.include_router(bookings_router)
+api_router.include_router(seats_router)

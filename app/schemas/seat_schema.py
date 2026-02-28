@@ -1,3 +1,4 @@
+
 from pydantic import BaseModel
 
 
@@ -9,3 +10,11 @@ class SeatOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SeatListOut(BaseModel):
+    event_id: int
+    total: int
+    available: int
+    booked: int
+    seats: list[SeatOut]
