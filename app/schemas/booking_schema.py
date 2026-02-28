@@ -17,3 +17,12 @@ class BookingOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class BookingCancelOut(BaseModel):
+    id: int
+    status: str
+    event_id: int
+    user_id: int
+    seat_numbers: list[str]
+    cancelled_at: datetime | None = None
