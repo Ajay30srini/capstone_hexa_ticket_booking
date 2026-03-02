@@ -1,16 +1,74 @@
 services:
+  # =========================
+  # DATABASES
+  # =========================
+  auth_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ajay30
+      POSTGRES_DB: auth_db
+    ports: ["54321:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   event_db:
     image: postgres:15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ajay30
       POSTGRES_DB: event_db
-    ports: ["5434:5432"]
+    ports: ["54322:5432"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d event_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d event_db"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  seat_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ajay30
+      POSTGRES_DB: seat_db
+    ports: ["54323:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d seat_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  booking_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ajay30
+      POSTGRES_DB: booking_db
+    ports: ["54324:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d booking_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # =========================
+  # SERVICES
+  # =========================
+  auth_service:
+    build: ./microservices/auth_service
+    env_file: ./.env
+    environment:
+      DATABASE_URL: ${AUTH_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+    depends_on:
+      auth_db:
+        condition: service_healthy
+    ports: ["8001:8000"]
 
   event_service:
     build: ./microservices/event_service
@@ -19,8 +77,78 @@ services:
       DATABASE_URL: ${EVENT_DATABASE_URL}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_ALGORITHM: ${JWT_ALGORITHM}
-      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      EVENT_URL: postgresql+psycopg2://postgres:ajay30@event_db:5432/event_db
+      SEAT_URL: postgresql+psycopg2://postgres:ajay30@seat_db:5432/seat_db
     depends_on:
       event_db:
         condition: service_healthy
     ports: ["8002:8000"]
+
+  seat_service:
+    build: ./microservices/seat_service
+    env_file: ./.env
+    environment:
+      DATABASE_URL: ${SEAT_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+    depends_on:
+      seat_db:
+        condition: service_healthy
+    ports: ["8003:8000"]
+
+  booking_service:
+    build: ./microservices/booking_service
+    env_file: ./.env
+    environment:
+      DATABASE_URL: ${BOOKING_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      EVENT_URL: postgresql+psycopg2://postgres:ajay30@event_db:5432/event_db
+      SEAT_URL: postgresql+psycopg2://postgres:ajay30@seat_db:5432/seat_db
+    depends_on:
+      booking_db:
+        condition: service_healthy
+      event_service:
+        condition: service_started
+      seat_service:
+        condition: service_started
+    ports: ["8004:8000"]
+
+  payment_service:
+    build: ./microservices/payment_service
+    env_file: ./.env
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      BOOKING_URL: ${BOOKING_URL}
+    depends_on:
+      booking_service:
+        condition: service_started
+    ports: ["8005:8000"]
+
+  # =========================
+  # API GATEWAY
+  # =========================
+  gateway:
+    build: ./microservices/gateway
+    env_file: ./.env
+    environment:
+      AUTH_URL: ${AUTH_URL}
+      EVENT_URL: ${EVENT_URL}
+      SEAT_URL: ${SEAT_URL}
+      BOOKING_URL: ${BOOKING_URL}
+      PAYMENT_URL: ${PAYMENT_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+    depends_on:
+      auth_service:
+        condition: service_started
+      event_service:
+        condition: service_started
+      seat_service:
+        condition: service_started
+      booking_service:
+        condition: service_started
+      payment_service:
+        condition: service_started
+    ports: ["8000:8000"]
