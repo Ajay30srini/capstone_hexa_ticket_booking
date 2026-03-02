@@ -1,0 +1,124 @@
+services:
+  auth_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ajay30
+      POSTGRES_DB: auth_db
+    ports: ["5433:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  event_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ajay30
+      POSTGRES_DB: event_db
+    ports: ["5434:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d event_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  inventory_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ajay30
+      POSTGRES_DB: inventory_db
+    ports: ["5435:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventory_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  booking_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ajay30
+      POSTGRES_DB: booking_db
+    ports: ["5436:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d booking_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth_service:
+    build: ./services/auth_service
+    env_file: ./.env
+    environment:
+      DATABASE_URL: ${AUTH_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+    depends_on:
+      auth_db:
+        condition: service_healthy
+    ports: ["8001:8000"]
+
+  event_service:
+    build: ./services/event_service
+    env_file: ./.env
+    environment:
+      DATABASE_URL: ${EVENT_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+    depends_on:
+      event_db:
+        condition: service_healthy
+    ports: ["8002:8000"]
+
+  seat_service:
+    build: ./services/seat_service
+    env_file: ./.env
+    environment:
+      DATABASE_URL: ${SEAT_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+    depends_on:
+      inventory_db:
+        condition: service_healthy
+    ports: ["8003:8000"]
+
+  booking_service:
+    build: ./services/booking_service
+    env_file: ./.env
+    environment:
+      DATABASE_URL: ${BOOKING_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      EVENT_URL: http://event_service:8000
+      SEAT_URL: http://seat_service:8000
+    depends_on:
+      booking_db:
+        condition: service_healthy
+    ports: ["8004:8000"]
+
+  payment_service:
+    build: ./services/payment_service
+    env_file: ./.env
+    environment:
+      BOOKING_URL: http://booking_service:8000
+    ports: ["8005:8000"]
+
+  gateway:
+    build: ./gateway
+    env_file: ./.env
+    depends_on:
+      - auth_service
+      - event_service
+      - seat_service
+      - booking_service
+      - payment_service
+    ports: ["8000:8000"]
