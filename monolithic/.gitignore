@@ -1,0 +1,11 @@
+.env
+.env.docker
+venv/
+__pycache__/
+.pgdata/
+.env
+.env.docker
+venv/
+__pycache__/
+*.pyc
+test_ticket_booking.db
